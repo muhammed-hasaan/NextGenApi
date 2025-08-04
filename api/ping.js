@@ -3,15 +3,25 @@ const axios = require('axios');
 const serverless = require('serverless-http');
 const cors = require('cors');
 
-const app = express(); 
+const app = express();
 
-app.use(cors());
+// ✅ Setup CORS manually to handle preflight
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*'); // You can restrict to a domain if needed
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Your POST endpoint
 app.post('/ping-lead', async (req, res) => {
   const data = req.body;
+
   try {
     const response = await axios.post(
       'https://track.edmleadnetwork.com/call-preping.do',
