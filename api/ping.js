@@ -1,8 +1,11 @@
 const express = require('express');
 const axios = require('axios');
 const serverless = require('serverless-http');
+const cors = require('cors');
 
+app.use(cors());
 const app = express();
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
