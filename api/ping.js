@@ -3,12 +3,13 @@ const axios = require('axios');
 const serverless = require('serverless-http');
 const cors = require('cors');
 
-app.use(cors());
-const app = express();
+const app = express(); 
 
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Your POST endpoint
 app.post('/ping-lead', async (req, res) => {
   const data = req.body;
   try {

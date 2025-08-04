@@ -4,6 +4,6 @@
     { "src": "api/ping.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/ping-lead", "dest": "/api/ping.js" }
+    { "src": "/ping-lead", "methods": ["POST"], "dest": "/api/ping.js" }
   ]
 }
