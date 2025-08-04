@@ -1,9 +1,15 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/ping.js", "use": "@vercel/node" }
+    {
+      "src": "api/ping-lead.js",
+      "use": "@vercel/node"
+    }
   ],
   "routes": [
-    { "src": "/ping-lead", "dest": "api/ping.js" }
+    {
+      "src": "/ping-lead",
+      "dest": "/api/ping-lead.js"
+    }
   ]
 }

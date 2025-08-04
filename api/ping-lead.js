@@ -1,12 +1,14 @@
+// api/ping-lead.js
+
 const express = require('express');
 const axios = require('axios');
-const serverless = require('serverless-http'); // Required for Vercel
+const serverless = require('serverless-http');
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.post('/ping-lead', async (req, res) => {
+app.post('/', async (req, res) => {
   const data = req.body;
 
   try {
@@ -53,6 +55,5 @@ app.post('/ping-lead', async (req, res) => {
   }
 });
 
-// Required for Vercel Serverless
 module.exports = app;
 module.exports.handler = serverless(app);
