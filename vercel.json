@@ -4,8 +4,8 @@
     { "src": "api/ping.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/ping-lead", "methods": ["POST"], "dest": "/api/index.js" },
-    { "src": "/clickthesis-ping", "methods": ["POST"], "dest": "/api/index.js" },
-    { "src": "/clickthesis-post", "methods": ["POST"], "dest": "/api/index.js" }
+    { "src": "/ping-lead", "methods": ["POST"], "dest": "/api/ping.js" },
+    { "src": "/clickthesis-ping", "methods": ["POST"], "dest": "/api/ping.js" },
+    { "src": "/clickthesis-post", "methods": ["POST"], "dest": "/api/ping.js" }
   ]
 }
