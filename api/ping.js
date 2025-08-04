@@ -66,5 +66,107 @@ app.post('/ping-lead', async (req, res) => {
   }
 });
 
+
+
+app.post('/clickthesis-ping', async (req, res) => {
+  const data = req.body;
+
+  try {
+    const response = await axios.post(
+      'https://www.clickthesis.com/api/apilead/homeservicesping',
+      {
+        sub_id: data.sub_id || 'source A',
+        unique_id: data.unique_id,
+        client_ip_address: data.client_ip_address,
+        test_lead: data.test_lead?.toString() || 'True',
+        trusted_form_cert_url: data.trusted_form_cert_url || '',
+        website_url: data.website_url || '',
+        state: data.state,
+        zip_code: data.zip_code,
+        project_type: data.project_type,
+        property_type: data.property_type,
+        install_repair: data.install_repair,
+        project_start: data.project_start?.toString(),
+        product_count: data.product_count?.toString(),
+        home_owner: data.home_owner?.toString(),
+        need_finance: data.need_finance?.toString(),
+        user_agent: data.user_agent || '',
+        tcpa_statement: data.tcpa_statement || ''
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': '7df05004-5904-4217-880a-f2b2eb81af9e'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      data: response.data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'ClickThesis Ping failed',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// POST TO CLICKTHESIS
+app.post('/clickthesis-post', async (req, res) => {
+  const data = req.body;
+
+  try {
+    const response = await axios.post(
+      'https://www.clickthesis.com/api/apilead/homeservices',
+      {
+        ping_id: data.ping_id || '',
+        sub_id: data.sub_id || 'source A',
+        unique_id: data.unique_id,
+        client_ip_address: data.client_ip_address,
+        test_lead: data.test_lead?.toString() || 'True',
+        trusted_form_cert_url: data.trusted_form_cert_url || '',
+        website_url: data.website_url || '',
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        street_address: data.street_address,
+        city: data.city,
+        state: data.state,
+        zip_code: data.zip_code,
+        project_type: data.project_type,
+        property_type: data.property_type,
+        install_repair: data.install_repair,
+        project_start: data.project_start?.toString(),
+        product_count: data.product_count?.toString(),
+        home_owner: data.home_owner?.toString(),
+        need_finance: data.need_finance?.toString(),
+        user_agent: data.user_agent || '',
+        tcpa_statement: data.tcpa_statement || ''
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': '7df05004-5904-4217-880a-f2b2eb81af9e'
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      data: response.data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'ClickThesis Post failed',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
 module.exports = app;
 module.exports.handler = serverless(app);
