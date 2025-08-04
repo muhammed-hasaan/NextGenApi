@@ -1,11 +1,11 @@
 const express = require('express');
 const axios = require('axios');
-const app = express();
+const serverless = require('serverless-http'); // Required for Vercel
 
+const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Ping API Endpoint
 app.post('/ping-lead', async (req, res) => {
   const data = req.body;
 
@@ -15,7 +15,7 @@ app.post('/ping-lead', async (req, res) => {
       new URLSearchParams({
         lp_campaign_id: '689103b4b9e62',
         lp_campaign_key: 'wQht6R8X7H3kTm9LqpcY',
-        caller_id: data.phone, // Required
+        caller_id: data.phone,
         first_name: data.first_name || '',
         last_name: data.last_name || '',
         phone_number: data.phone || '',
@@ -43,7 +43,7 @@ app.post('/ping-lead', async (req, res) => {
       }
     );
 
-    res.json(response.data); // Return response from EDM server
+    res.json(response.data);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -53,6 +53,6 @@ app.post('/ping-lead', async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('✅ Server running');
-});
+// Required for Vercel Serverless
+module.exports = app;
+module.exports.handler = serverless(app);
