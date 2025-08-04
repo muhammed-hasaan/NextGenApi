@@ -1,5 +1,3 @@
-// api/ping-lead.js
-
 const express = require('express');
 const axios = require('axios');
 const serverless = require('serverless-http');
@@ -8,9 +6,8 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.post('/', async (req, res) => {
+app.post('/ping-lead', async (req, res) => {
   const data = req.body;
-
   try {
     const response = await axios.post(
       'https://track.edmleadnetwork.com/call-preping.do',
