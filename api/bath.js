@@ -197,7 +197,8 @@ export default async function handler(req, res) {
         const text = await fetchRes.text();
         postResponse = {
           status: fetchRes.status,
-          data: text
+          data: "Thank you for submitting your request"
+        //   data: text
         };
         break;
       } catch (err) {
@@ -218,6 +219,7 @@ export default async function handler(req, res) {
       dailyCount,
       postResponse
     });
+    
   } catch (err) {
     console.error('Lead handler error:', err);
     res.status(500).json({ error: 'Internal error', details: err?.message || String(err) });
