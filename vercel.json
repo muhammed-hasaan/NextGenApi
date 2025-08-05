@@ -3,6 +3,10 @@
     {
       "source": "/ping-lead",
       "destination": "/api/ping-lead"
+    },
+    {
+      "source": "/bath",
+      "destination": "/api/bath"
     }
   ]
 }
