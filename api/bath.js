@@ -843,9 +843,16 @@ function releaseSlot() {
 
 // Main handler
 export default async function handler(req, res) {
-  // Set response headers
+  // Set response headers  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle OPTIONS request (preflight)
   res.setHeader('Content-Type', 'application/json');
   
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   try {
     // Check operating hours first
     if (!isWithinOperatingHours()) {
