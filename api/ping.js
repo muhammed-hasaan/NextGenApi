@@ -178,12 +178,24 @@ const cors = require('cors');
 
 const app = express();
 
-// Enable CORS for all origins (development). Production mein origin restrict kar sakte ho.
-app.use(cors()); // yeh automatically OPTIONS ko handle karta hai
+// ✅ Enable CORS properly for all origins (development). 
+// Aap production mein origin restrict kar sakte ho agar zarurat ho.
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
 
+// Body parsing
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Helper to pick phone value
+const pickPhone = (data) => data.phone_number || data.caller_id || data.phone || '';
+
+// === /ping-lead ===
 app.post('/ping-lead', async (req, res) => {
   const data = req.body;
 
@@ -193,11 +205,11 @@ app.post('/ping-lead', async (req, res) => {
       new URLSearchParams({
         lp_campaign_id: '689103b4b9e62',
         lp_campaign_key: 'wQht6R8X7H3kTm9LqpcY',
-        caller_id: data.phone_number || data.caller_id || '',
+        caller_id: pickPhone(data),
         first_name: data.first_name || '',
         last_name: data.last_name || '',
-        phone_number: data.phone_number || data.caller_id || '',
-        email_address: data.email_address || '',
+        phone_number: pickPhone(data),
+        email_address: data.email_address || data.email || '',
         address: data.address || '',
         city: data.city || '',
         state: data.state || '',
@@ -221,9 +233,8 @@ app.post('/ping-lead', async (req, res) => {
       }
     );
 
-    res.json(response.data);
+    res.status(200).json(response.data);
   } catch (error) {
-    // ensure CORS header is still present on error (cors middleware already does this)
     res.status(500).json({
       success: false,
       message: 'Ping failed',
@@ -232,7 +243,7 @@ app.post('/ping-lead', async (req, res) => {
   }
 });
 
-
+// === /clickthesis-ping ===
 app.post('/clickthesis-ping', async (req, res) => {
   const data = req.body;
 
@@ -266,7 +277,7 @@ app.post('/clickthesis-ping', async (req, res) => {
       }
     );
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: response.data
     });
@@ -279,7 +290,7 @@ app.post('/clickthesis-ping', async (req, res) => {
   }
 });
 
-// POST TO CLICKTHESIS
+// === /clickthesis-post ===
 app.post('/clickthesis-post', async (req, res) => {
   const data = req.body;
 
@@ -320,7 +331,7 @@ app.post('/clickthesis-post', async (req, res) => {
       }
     );
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: response.data
     });
@@ -332,5 +343,6 @@ app.post('/clickthesis-post', async (req, res) => {
     });
   }
 });
+
 module.exports = app;
 module.exports.handler = serverless(app);
