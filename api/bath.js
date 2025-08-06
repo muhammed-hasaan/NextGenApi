@@ -1424,6 +1424,7 @@
 // function delay(ms) {
 //     return new Promise(resolve => setTimeout(resolve, ms));
 // }
+
 const AFID = '568579';
 const SIMPLE_POST_URL = 'https://cumuluspost.com/Lead/473193/SimplePost';
 const SECURE_POST_URL = 'https://cumuluspost.com/Lead/473193/SecurePost';
@@ -1453,20 +1454,221 @@ const OPERATING_HOURS = {
     sunday: null
 };
 
+// export default async function handler(req, res) {
+//     // ✅ Set CORS headers
+//     res.setHeader('Access-Control-Allow-Origin', '*');
+//     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+//     // ✅ Handle preflight request
+//     if (req.method === 'OPTIONS') {
+//         return res.status(200).end();
+//     }
+
+//     // Only accept POST requests
+//     if (req.method !== 'POST') {
+//         return res.status(405).json({ 
+//             error: 'Method not allowed',
+//             allowedMethods: ['POST']
+//         });
+//     }
+
+//     try {
+//         // Check operating hours
+//         if (!isWithinOperatingHours()) {
+//             return res.status(403).json({
+//                 error: 'Service unavailable outside operating hours (M-F 6am-5pm PST, Sat 6am-2pm PST)'
+//             });
+//         }
+
+//         // Reset daily counter
+//         const today = getPstDayString();
+//         if (today !== currentDay) {
+//             currentDay = today;
+//             dailyCount = 0;
+//         }
+
+//         // Parse JSON body
+//         let lead;
+//         try {
+//             lead = typeof req.body === 'object' ? req.body : JSON.parse(req.body);
+//         } catch (e) {
+//             return res.status(400).json({
+//                 error: 'Invalid JSON body',
+//                 details: e.message
+//             });
+//         }
+
+//         // Validate required fields
+//         const requiredFields = [
+//             'FirstName', 'LastName', 'Phone',
+//             'Address', 'City', 'State', 'Zip',
+//             'jobType', 'spaceType', 'propertyType', 'occupancy'
+//         ];
+
+//         const missingFields = requiredFields.filter(f => !lead[f]);
+//         if (missingFields.length) {
+//             return res.status(400).json({
+//                 error: 'Missing required fields',
+//                 missingFields
+//             });
+//         }
+
+//         // Validate qualifications
+//         const validationErrors = [];
+
+//         if (lead.spaceType.toLowerCase() !== 'wet') {
+//             validationErrors.push('spaceType must be "wet"');
+//         }
+
+//         if (!VALID_JOB_TYPES.has(lead.jobType.toLowerCase())) {
+//             validationErrors.push(`jobType must be one of: ${Array.from(VALID_JOB_TYPES).join(', ')}`);
+//         }
+
+//         if (lead.propertyType.toLowerCase().includes('mobile')) {
+//             validationErrors.push('Mobile homes are not allowed');
+//         }
+
+//         if (['renter', 'renters'].includes(lead.occupancy.toLowerCase())) {
+//             validationErrors.push('Renters are not allowed');
+//         }
+
+//         if (!validateGeo(lead.Zip)) {
+//             validationErrors.push('Invalid geographic location');
+//         }
+
+//         if (validationErrors.length) {
+//             return res.status(400).json({
+//                 error: 'Qualification failed',
+//                 details: validationErrors
+//             });
+//         }
+
+//         // Check buffer for duplicates
+//         const nowTs = Date.now();
+//         const phoneKey = normalizePhone(lead.Phone);
+
+//         if (recentPhoneBuffer.has(phoneKey)) {
+//             const lastTs = recentPhoneBuffer.get(phoneKey);
+//             if (nowTs - lastTs < BUFFER_SECONDS * 1000) {
+//                 const waitSec = Math.ceil((BUFFER_SECONDS * 1000 - (nowTs - lastTs)) / 1000);
+//                 return res.status(429).json({
+//                     error: 'Duplicate lead detected',
+//                     details: `Wait ${waitSec} seconds before retrying this phone number`
+//                 });
+//             }
+//         }
+
+//         // Check daily limit
+//         if (dailyCount >= MAX_PER_DAY) {
+//             return res.status(429).json({
+//                 error: 'Daily lead limit reached',
+//                 details: `Maximum ${MAX_PER_DAY} leads per day`
+//             });
+//         }
+
+//         // Acquire concurrency slot
+//         await acquireSlot();
+
+//         // Register in buffer
+//         recentPhoneBuffer.set(phoneKey, nowTs);
+//         setTimeout(() => {
+//             recentPhoneBuffer.delete(phoneKey);
+//         }, BUFFER_SECONDS * 1000);
+
+//         // Prepare form data
+//         const form = new URLSearchParams();
+//         form.append('AFID', AFID);
+//         if (lead.SID) form.append('SID', lead.SID);
+//         if (lead.ADID) form.append('ADID', lead.ADID);
+//         if (lead.ClickID) form.append('ClickID', lead.ClickID);
+//         if (lead.AffiliateReferenceID) form.append('AffiliateReferenceID', lead.AffiliateReferenceID);
+//         form.append('FirstName', lead.FirstName);
+//         form.append('LastName', lead.LastName);
+//         form.append('Phone', lead.Phone);
+//         if (lead.Email) form.append('Email', lead.Email);
+//         form.append('Address', lead.Address);
+//         form.append('City', lead.City);
+//         form.append('State', lead.State);
+//         form.append('Zip', lead.Zip);
+//         if (lead.SquareFootage) form.append('SquareFootage', lead.SquareFootage);
+//         if (lead.RoofType) form.append('RoofType', lead.RoofType);
+//         form.append('DID', DID);
+
+//         // Determine post type
+//         const postType = (lead.postType || 'simple').toLowerCase();
+//         const postUrl = postType === 'secure' ? SECURE_POST_URL : SIMPLE_POST_URL;
+
+//         // Post with retry
+//         let postResponse = null;
+//         let attempt = 0;
+
+//         while (attempt < 2) {
+//             try {
+//                 const fetchRes = await fetch(postUrl, {
+//                     method: 'POST',
+//                     headers: {
+//                         'Content-Type': 'application/x-www-form-urlencoded'
+//                     },
+//                     body: form.toString()
+//                 });
+
+//                 postResponse = {
+//                     status: fetchRes.status,
+//                     statusText: fetchRes.statusText,
+//                     data: await fetchRes.text()
+//                 };
+
+//                 if (fetchRes.ok) dailyCount += 1;
+//                 break;
+//             } catch (err) {
+//                 if (++attempt >= 2) throw err;
+//                 await delay(300 * attempt);
+//             }
+//         }
+
+//         // Successful response
+//         res.status(200).json({
+//             success: true,
+//             message: 'Lead processed successfully',
+//             postType,
+//             dailyCount,
+//             postResponse
+//         });
+
+//     } catch (err) {
+//         console.error('Lead processing error:', err);
+//         res.status(500).json({
+//             error: 'Internal server error',
+//             details: process.env.NODE_ENV === 'development'
+//                 ? err.message
+//                 : 'Please contact support'
+//         });
+//     } finally {
+//         releaseSlot();
+//     }
+// }
+
+// Helper functions
+
 export default async function handler(req, res) {
-    // ✅ Set CORS headers
+    // Set response content type first (ensures all responses are JSON)
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
-    // ✅ Handle preflight request
+    // Handle preflight request
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        return res.status(200).json({ status: 'OK' });
     }
 
     // Only accept POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({ 
+            success: false,
             error: 'Method not allowed',
             allowedMethods: ['POST']
         });
@@ -1476,7 +1678,9 @@ export default async function handler(req, res) {
         // Check operating hours
         if (!isWithinOperatingHours()) {
             return res.status(403).json({
-                error: 'Service unavailable outside operating hours (M-F 6am-5pm PST, Sat 6am-2pm PST)'
+                success: false,
+                error: 'Service unavailable',
+                message: 'Service unavailable outside operating hours (M-F 6am-5pm PST, Sat 6am-2pm PST)'
             });
         }
 
@@ -1493,8 +1697,10 @@ export default async function handler(req, res) {
             lead = typeof req.body === 'object' ? req.body : JSON.parse(req.body);
         } catch (e) {
             return res.status(400).json({
-                error: 'Invalid JSON body',
-                details: e.message
+                success: false,
+                error: 'Invalid request body',
+                message: 'Could not parse JSON body',
+                details: process.env.NODE_ENV === 'development' ? e.message : undefined
             });
         }
 
@@ -1508,27 +1714,33 @@ export default async function handler(req, res) {
         const missingFields = requiredFields.filter(f => !lead[f]);
         if (missingFields.length) {
             return res.status(400).json({
+                success: false,
                 error: 'Missing required fields',
-                missingFields
+                missingFields,
+                message: `Missing: ${missingFields.join(', ')}`
             });
         }
 
         // Validate qualifications
         const validationErrors = [];
+        const spaceType = String(lead.spaceType).toLowerCase();
+        const jobType = String(lead.jobType).toLowerCase();
+        const propertyType = String(lead.propertyType).toLowerCase();
+        const occupancy = String(lead.occupancy).toLowerCase();
 
-        if (lead.spaceType.toLowerCase() !== 'wet') {
+        if (spaceType !== 'wet') {
             validationErrors.push('spaceType must be "wet"');
         }
 
-        if (!VALID_JOB_TYPES.has(lead.jobType.toLowerCase())) {
+        if (!VALID_JOB_TYPES.has(jobType)) {
             validationErrors.push(`jobType must be one of: ${Array.from(VALID_JOB_TYPES).join(', ')}`);
         }
 
-        if (lead.propertyType.toLowerCase().includes('mobile')) {
+        if (propertyType.includes('mobile')) {
             validationErrors.push('Mobile homes are not allowed');
         }
 
-        if (['renter', 'renters'].includes(lead.occupancy.toLowerCase())) {
+        if (['renter', 'renters'].includes(occupancy)) {
             validationErrors.push('Renters are not allowed');
         }
 
@@ -1538,7 +1750,9 @@ export default async function handler(req, res) {
 
         if (validationErrors.length) {
             return res.status(400).json({
+                success: false,
                 error: 'Qualification failed',
+                message: 'Lead did not meet requirements',
                 details: validationErrors
             });
         }
@@ -1552,8 +1766,9 @@ export default async function handler(req, res) {
             if (nowTs - lastTs < BUFFER_SECONDS * 1000) {
                 const waitSec = Math.ceil((BUFFER_SECONDS * 1000 - (nowTs - lastTs)) / 1000);
                 return res.status(429).json({
+                    success: false,
                     error: 'Duplicate lead detected',
-                    details: `Wait ${waitSec} seconds before retrying this phone number`
+                    message: `Wait ${waitSec} seconds before retrying this phone number`
                 });
             }
         }
@@ -1561,8 +1776,9 @@ export default async function handler(req, res) {
         // Check daily limit
         if (dailyCount >= MAX_PER_DAY) {
             return res.status(429).json({
+                success: false,
                 error: 'Daily lead limit reached',
-                details: `Maximum ${MAX_PER_DAY} leads per day`
+                message: `Maximum ${MAX_PER_DAY} leads per day`
             });
         }
 
@@ -1601,6 +1817,7 @@ export default async function handler(req, res) {
         // Post with retry
         let postResponse = null;
         let attempt = 0;
+        let lastError = null;
 
         while (attempt < 2) {
             try {
@@ -1618,37 +1835,50 @@ export default async function handler(req, res) {
                     data: await fetchRes.text()
                 };
 
-                if (fetchRes.ok) dailyCount += 1;
-                break;
+                if (fetchRes.ok) {
+                    dailyCount += 1;
+                    break;
+                } else {
+                    lastError = new Error(`External API responded with ${fetchRes.status}`);
+                }
             } catch (err) {
-                if (++attempt >= 2) throw err;
+                lastError = err;
+                if (++attempt >= 2) break;
                 await delay(300 * attempt);
             }
         }
 
+        if (lastError) {
+            throw lastError;
+        }
+
         // Successful response
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'Lead processed successfully',
             postType,
             dailyCount,
-            postResponse
+            postResponse: {
+                status: postResponse.status,
+                statusText: postResponse.statusText
+            }
         });
 
     } catch (err) {
         console.error('Lead processing error:', err);
-        res.status(500).json({
+        return res.status(500).json({
+            success: false,
             error: 'Internal server error',
+            message: 'Failed to process lead',
             details: process.env.NODE_ENV === 'development'
                 ? err.message
-                : 'Please contact support'
+                : undefined
         });
     } finally {
         releaseSlot();
     }
 }
 
-// Helper functions
 function getPstDayString() {
     try {
         const now = new Date();
