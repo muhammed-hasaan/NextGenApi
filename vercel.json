@@ -8,6 +8,10 @@
     {
       "source": "/bath",
       "destination": "/api/bath.js"
+    },
+    {
+      "source": "/windows",
+      "destination": "/api/windows.js"
     }
   ],
   "headers": [
