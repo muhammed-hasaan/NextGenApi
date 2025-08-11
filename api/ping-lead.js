@@ -452,75 +452,80 @@
 // }
 
 // pages/api/ping-lead.js
+
+// /pages/api/ping-lead.js
+
 import axios from 'axios';
 
 export default async function handler(req, res) {
+  // ✅ Allow only POST
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method Not Allowed' });
+  }
+
+  // ✅ Set CORS headers for Vercel serverless
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // ✅ Handle preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
   try {
     const body = req.body || {};
 
-    // REQUIRED server-side config (set in your environment)
+    // 🔑 Config from environment variables (Vercel dashboard me set karo)
     const LP_CAMPAIGN_ID = process.env.LP_CAMPAIGN_ID || '689103b4b9e62';
     const LP_CAMPAIGN_KEY = process.env.LP_CAMPAIGN_KEY || 'wQht6R8X7H3kTm9LqpcY';
 
-    // Validate essentials before forwarding
-    // API requires caller_id (phone) AND lp_campaign_id & key
     const caller_id = body.caller_id || body.phone_number || '';
     if (!caller_id) {
-      return res.status(400).json({ success: false, message: 'caller_id (phone number) is required. Provide caller_id or phone_number in the request.' });
+      return res.status(400).json({
+        success: false,
+        message: 'caller_id (phone number) is required. Provide caller_id or phone_number in the request.'
+      });
     }
 
-    if (!LP_CAMPAIGN_ID || !LP_CAMPAIGN_KEY) {
-      return res.status(500).json({ success: false, message: 'Server missing LP_CAMPAIGN_ID or LP_CAMPAIGN_KEY environment variables.' });
-    }
-
-    // Build form params exactly as documentation expects (we use application/x-www-form-urlencoded)
+    // ✅ Prepare request params exactly per docs
     const params = new URLSearchParams();
-
-    // Must include these two
     params.append('lp_campaign_id', LP_CAMPAIGN_ID);
     params.append('lp_campaign_key', LP_CAMPAIGN_KEY);
-
-    // required by API
     params.append('caller_id', caller_id);
 
-    // optional tracking s1..s5 (if passed from frontend)
-    ['s1','s2','s3','s4','s5'].forEach(k => {
+    ['s1', 's2', 's3', 's4', 's5'].forEach(k => {
       if (body[k]) params.append(k, body[k]);
     });
 
-    // Posting fields (frontend shows only specific required ones)
     const postFields = [
-      'first_name','last_name','phone_number','email_address','address','city','state',
-      'zip_code','dob','ip_address','gender','marital_status','jornaya_lead_id','trusted_form_cert_id'
+      'first_name', 'last_name', 'phone_number', 'email_address', 'address',
+      'city', 'state', 'zip_code', 'dob', 'ip_address', 'gender',
+      'marital_status', 'jornaya_lead_id', 'trusted_form_cert_id'
     ];
+
     postFields.forEach(k => {
       if (body[k] !== undefined && body[k] !== null && body[k] !== '') {
         params.append(k, body[k]);
       }
     });
 
-    // IMPORTANT: DO NOT SEND ping_id from client - API gives it back.
-    // if (body.ping_id) skip it.
-
     const PING_URL = 'https://track.edmleadnetwork.com/call-preping.do';
 
-    // Forward request
-    const resp = await axios.post(PING_URL, params.toString(), {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
+    // ✅ Forward to EDM API from server
+    const edmResp = await axios.post(PING_URL, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: 10000
     });
 
-    // Forward the API response to the frontend
-    return res.status(200).json(resp.data);
+    // ✅ Send EDM API response to frontend
+    return res.status(200).json(edmResp.data);
+
   } catch (err) {
-    // nicer error for frontend
-    const message = err.response?.data || err.message || 'Unknown error';
-    return res.status(500).json({ success: false, message });
+    console.error('Server error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.response?.data || err.message || 'Unknown error'
+    });
   }
 }
