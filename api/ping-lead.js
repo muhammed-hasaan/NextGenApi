@@ -347,66 +347,106 @@
 // module.exports = app;
 // module.exports.handler = serverless(app);
 
-
+// pages/api/call-preping-proxy.js
 import axios from 'axios';
 
-export default async function handler(req, res) {
-  // ✅ Add CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const EDM_URL = 'https://track.edmleadnetwork.com/call-preping.do';
 
-  // ✅ Handle preflight
+// Use env vars for security / flexibility; fall back to your current hardcoded values
+const DEFAULT_CAMPAIGN_ID = process.env.EDM_LP_CAMPAIGN_ID || '689103b4b9e62';
+const DEFAULT_CAMPAIGN_KEY = process.env.EDM_LP_CAMPAIGN_KEY || 'wQht6R8X7H3kTm9LqpcY';
+
+// helper to build params from incoming request (body or query)
+function buildParams(source = {}) {
+  return {
+    lp_campaign_id: source.lp_campaign_id || DEFAULT_CAMPAIGN_ID,
+    lp_campaign_key: source.lp_campaign_key || DEFAULT_CAMPAIGN_KEY,
+    caller_id: source.caller_id || source.phone_number || '',
+    // sub-affiliates
+    s1: source.s1 || '',
+    s2: source.s2 || '',
+    s3: source.s3 || '',
+    s4: source.s4 || '',
+    s5: source.s5 || '',
+    // posting fields
+    first_name: source.first_name || '',
+    last_name: source.last_name || '',
+    phone_number: source.phone_number || '',
+    email_address: source.email_address || '',
+    address: source.address || '',
+    city: source.city || '',
+    state: source.state || '',
+    zip_code: source.zip_code || '',
+    dob: source.dob || '',
+    ip_address: source.ip_address || '',
+    gender: source.gender || '',
+    marital_status: source.marital_status || '',
+    jornaya_lead_id: source.jornaya_lead_id || '',
+    trusted_form_cert_id: source.trusted_form_cert_id || ''
+  };
+}
+
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Accept, X-Requested-With, Authorization'
+  );
+  res.setHeader('Access-Control-Max-Age', '86400');
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!['POST', 'GET'].includes(req.method)) {
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const data = req.body;
+  // Accept incoming params from body (POST) or query (GET)
+  const source = req.method === 'POST' ? req.body || {} : req.query || {};
+  const params = buildParams(source);
+
+  // Basic validation: caller_id is required per docs.
+  if (!params.caller_id) {
+    return res.status(400).json({
+      success: false,
+      message:
+        'caller_id (phone number) is required. Provide caller_id or phone_number in the request.'
+    });
+  }
 
   try {
-    const response = await axios.post(
-      'https://track.edmleadnetwork.com/call-preping.do',
-      new URLSearchParams({
-        lp_campaign_id: '689103b4b9e62',
-        lp_campaign_key: 'wQht6R8X7H3kTm9LqpcY',
-        caller_id: data.caller_id || data.phone_number || '',
-        first_name: data.first_name || '',
-        last_name: data.last_name || '',
-        phone_number: data.phone_number || '',
-        email_address: data.email_address || '',
-        address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        zip_code: data.zip_code || '',
-        dob: data.dob || '',
-        ip_address: data.ip_address || '',
-        gender: data.gender || '',
-        marital_status: data.marital_status || '',
-        jornaya_lead_id: data.jornaya_lead_id || '',
-        trusted_form_cert_id: data.trusted_form_cert_id || '',
-        s1: data.s1 || '',
-        s2: data.s2 || '',
-        s3: data.s3 || '',
-        s4: data.s4 || '',
-        s5: data.s5 || ''
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
+    let upstreamResponse;
 
-    res.status(200).json(response.data);
+    if (req.method === 'POST') {
+      // send as form-encoded body
+      upstreamResponse = await axios.post(EDM_URL, new URLSearchParams(params).toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 10000 // 10s timeout
+      });
+    } else {
+      // GET: send as query string
+      upstreamResponse = await axios.get(EDM_URL, {
+        params,
+        timeout: 10000
+      });
+    }
+
+    // Forward upstream status code and data
+    res.status(upstreamResponse.status).json(upstreamResponse.data);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Ping failed',
-      error: error.response?.data || error.message
-    });
+    // Try to pass along upstream response body/status if available
+    const status = error.response?.status || 500;
+    const payload =
+      error.response?.data ||
+      {
+        success: false,
+        message: 'Ping failed',
+        error: error.message
+      };
+
+    res.status(status).json(payload);
   }
 }
