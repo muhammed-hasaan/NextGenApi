@@ -14,7 +14,7 @@
       "destination": "/api/windows.js"
     },
     {
-      "source": "/enrollhere?phone",
+      "source": "/enrollhere",
       "destination": "/api/enrollhere.js"
     }
   ],
