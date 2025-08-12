@@ -12,6 +12,10 @@
     {
       "source": "/windows",
       "destination": "/api/windows.js"
+    },
+    {
+      "source": "/enrollhere ",
+      "destination": "/api/enrollhere.js"
     }
   ],
   "headers": [
